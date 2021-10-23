@@ -59,7 +59,7 @@ const getGasViaPolygonscan = async () => {
   let reqUrl = `https://api.polygonscan.com/api?module=gastracker&action=gasoracle&apikey=${apikey}`;
 
   let res = await got(reqUrl, {json: true});
-  // return res.body.result['ProposeGasPrice'];
+  if (res.body.result == 'Error!') return 100;
   return res.body.result["FastGasPrice"];
 };
 
@@ -67,7 +67,6 @@ const _getOverrides = async (launchNetwork = false) => {
   let netConfig = hre.config.networks[launchNetwork];
 
   if (launchNetwork && !isEthereum(launchNetwork)) {
-    let netConfig = hre.config.networks[launchNetwork];
     if (typeof netConfig.gasPrice == "number") return {gasPrice: netConfig.gasPrice};
     if (isMatic(launchNetwork)) {
       let gp = await getGasViaPolygonscan();
@@ -104,7 +103,6 @@ const _verifyBase = async (contract, launchNetwork, cArgs = []) => {
       network: launchNetwork,
     });
     log(`Verified ${JSON.stringify(contract)} on network: ${launchNetwork} with constructor args ${cArgs.join(", ")}`);
-    log("\n");
     return true;
   } catch (e) {
     log(`Etherscan verification failed w/ ${e} | Args: ${cArgs} | on ${launchNetwork} for ${contract.address}`);
@@ -119,7 +117,7 @@ const _verify = async (contract, launchNetwork, cArgs) => {
 };
 
 const _deployContract = async (name, launchNetwork = false, cArgs = []) => {
-  if (typeof cArgs !== "undefined" && (!Array.isArray(cArgs) && Object.keys(cArgs).length > 0)) cArgs = [cArgs];
+  if (typeof cArgs !== "undefined" && !Array.isArray(cArgs) && Object.keys(cArgs).length > 0) cArgs = [cArgs];
   log(`Attempting to deploy ${name} - ${cArgs?.length ? cArgs.join(",") : cArgs}`);
 
   const overridesForEIP1559 = await _getOverrides(launchNetwork);
@@ -128,7 +126,7 @@ const _deployContract = async (name, launchNetwork = false, cArgs = []) => {
   await contract.deployTransaction.wait(1);
   await contract.deployed();
 
-  log(`\nDeployed ${name} to ${contract.address} on ${launchNetwork} w/ args: ${cArgs.join(",")}`);
+  log(`Deployed ${name} to ${contract.address} on ${launchNetwork} w/ args: ${cArgs.join(",")}`);
   return Promise.resolve({contract: contract, args: cArgs, initialized: false, srcName: name});
 };
 
